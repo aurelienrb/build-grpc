@@ -29,7 +29,7 @@ You will find binary packages on the [release page](https://github.com/aurelienr
 The script check and validates the dependencies, but also detects and fixes various issues:
 - version 1.0.0 builds successfully but cause link erros on your software (issue [#8606](https://github.com/grpc/grpc/issues/8606))
 - dependency BoringSSL (Google fork of OpenSSL) won't build on `armv6l` or `armv7l` such as Raspberry Pi or NVidia Tegra (issue [#8719](https://github.com/grpc/grpc/issues/8719))
-- embeded dependency zlib causes a build issue on Travis VMs (Ubuntu 14.04)  
+- third_party/zlib references system wide zlib when building examples (issue [#8739](https://github.com/grpc/grpc/issues/8739))  
 
 ### Requirements to run the script
 - must: bash
