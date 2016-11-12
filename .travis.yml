@@ -1,10 +1,7 @@
 language: cpp
 sudo: false
-
 env:
-  global:
-    GRPC_VERSION=v1.0.1
-
+  global: GRPC_VERSION=v1.0.1
 matrix:
   include:
   - compiler: gcc
@@ -73,26 +70,22 @@ matrix:
         - clang-3.8
     script:
     - env CC=clang-3.8 CXX=clang++-3.8 ./build_grpc.sh $GRPC_VERSION
-
 before_script:
 - echo "TRAVIS_TAG=$TRAVIS_TAG"
 - echo "GRPC_VERSION=$GRPC_VERSION"
 - uname -a
 - ls
-
 after_script:
 - ls
-
 notifications:
   email: false
-
 deploy:
   provider: releases
   skip_cleanup: true
-  overwrite: true
   api_key:
-    secure: he0yEY/zt8J8xDn0x5GzcY6rEkw/4QkY43Em2LVgcJxBcVqPeACaqL5xuzCHlYRTqiSvueDnzlDAZAlQiBDXg4nK0VtWCQSr4pi3GuOCco8GKH8cK5cdhPsBwPHA6I38+gWFk4YMpez1DZcNN5x/0Qa9ug37B1xgTN/zioJRaipr+bg6uDFfD0pEV2SvUJQ/FTxtTyHDQfmHM5Eu1bn+KTBKJgF+IKrrUpI0Ny2yUmmdRQtxtkjbBUNB3IUeTa+ySCJakTWrARfr1gEWeLljrMxtoqtVERd/c/pnEhu3zdSGx8+q6/pC/pzmV1olmE9uijMnX84ufP0ClmkiFhyKktmg+BD7ijZHcr1dcaB1AycBoVBdoi+YAt84wG/jfKMN1xp1S6qHGyvaX0xvVmx0V4KWrFDEQLU3RNYjKRLpubwHPYVFgsaBZ0s7TRdfC0YwBnatsOxqEiZMBXoH/1cCMCXXvL48AEEseWqaJQ/pv1Fw/ZnVX8pKU1OmGWQMnx1KxTUflLFv9Z0gk1AGCIRdslE1I9DFI6xOayjOqxU40T1HD+BlI164yR61cfmclYS493L4jxJxCZstk3mwZcNQfhrZbLun1Gbd6/3PoIukX5YXql/0tu83WqlTgPZdEGHKDzTaQjOGpaSTL2WNnkzaiaj0315BjajmJmfoXVE7hkA=
+    secure: IMKMVmgnA5iRPQ2R1v24A2WO1xIcKjHGexfFFT24eSCVyQ0AgiFUI57vx1zprrN7WPBafU9g4RLzkRHU4Zihg3PfAR5QrlMfUhztcNlYOlcSM0mk8x2j6Lp27djXV3kJov6JW4S6yVS65hPI/WbRmdsq3D2vBxy7q30LA+wwYzd/zmeAIp3jjLDX8cb+Xle8fYL++bmDfRJu37sDb12q7f7bDsSxAydB/7cseM1ZZ6niwA6PrgSjcNqOnYhrCm5OG3+zvzZMrkdd++XwYMFsuYcpqHyMvSAtnLRB8xAaK9kEewHaRPbHbk+E5d02Tvq2Vls7pTHYJPMEF7sm8zA/qOPuIic8ocrNhcCoIsN/huY533DQ20p8DPMq0PobvUBk8MpBPZaFOkc2myhCoClmn0Yr8b0/E9r8ikvykcRXDKB9mrlarzNu6n0H/aOdJMHXLM7w+O9IQDzNfLJR9kGQBKZ7y6dGnQ3sRA8aIUjxs4EG1yIViocGyTBlzEuFqKC8/1ewHi9hIbibefvP43oNS6WbjhimYnaSfsfPZJexPKAJQm/zT9HkxlA4V1ZpXzNKfLZHrDpagtT7+7CnR23aRqaZ700g4TnJnOQfuFKDgu5dS+958j1PYMvfCUwGxcI3Yxzv4NO1aW+oF5OtVU9U/afNXmtwp1maC+LPtDp9noI=
   file: grpc-*.tar.gz
   file_glob: true
   on:
     tags: true
+    repo: aurelienrb/build-grpc
