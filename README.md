@@ -1,6 +1,6 @@
 # Automated builds of gRPC
 
-[![Build Status](https://travis-ci.org/aurelienrb/build-grpc.svg?branch=master)](https://travis-ci.org/aurelienrb/build-grpc) [![GitHub version](https://badge.fury.io/gh/aurelienrb%2Fbuild-grpc.svg)](https://github.com/aurelienrb/build-grpc/releases)
+[![Build Status](https://travis-ci.org/aurelienrb/build-grpc.svg?branch=master)](https://travis-ci.org/aurelienrb/build-grpc)
 
 ## Introduction
 
