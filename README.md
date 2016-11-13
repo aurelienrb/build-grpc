@@ -26,8 +26,14 @@ You will find binary packages on the [release page](https://github.com/aurelienr
 
 ## What do the scripts do?
 
-The script check and validates the dependencies, but also detects and fixes various issues:
-- version 1.0.0 builds successfully but cause link erros on your software (issue [#8606](https://github.com/grpc/grpc/issues/8606))
+The script will:
+- install cmake if not available / existing version is too old
+- clone grpc source code + its submodules
+- detect and prevent possible build issues by patching the source
+- build grpc in debug and release
+- create a tar.gz package
+ 
+The posisble issues that are fixed by the script are:
 - dependency BoringSSL (Google fork of OpenSSL) won't build on `armv6l` or `armv7l` such as Raspberry Pi or NVidia Tegra (issue [#8719](https://github.com/grpc/grpc/issues/8719))
 - third_party/zlib references system wide zlib when building examples (issue [#8739](https://github.com/grpc/grpc/issues/8739))  
 
