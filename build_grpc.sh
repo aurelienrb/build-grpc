@@ -132,28 +132,7 @@ function patch_grpc_makefile {
     fi
 }
 
-function create_grpc_package {
-    local PCKGDIR=grpc-$GRPCTAG-linux-$COMPILER-$ARCH
-    print_info "Preparing package structure '$PCKGDIR'"
-
-    mkdir -p $PCKGDIR/bin || exit_failure
-    cp release/grpc_*_plugin $PCKGDIR/bin/
-    cp release/third_party/protobuf/protoc $PCKGDIR/bin/
-
-    cp -R $GRPCDIR/include/ $PCKGDIR/include/ || exit_failure
-
-    for CFG in debug release
-    do
-        mkdir -p $PCKGDIR/lib/$CFG
-        cp $CFG/*.a $PCKGDIR/lib/$CFG/
-        rm $PCKGDIR/lib/$CFG/libgrpc_cronet.a
-        rm $PCKGDIR/lib/$CFG/libgrpc_csharp_ext.a
-        rm $PCKGDIR/lib/$CFG/libgrpc_plugin_support.a
-        
-        cp $CFG/third_party/zlib/libz.a $PCKGDIR/lib/$CFG/
-        cp $CFG/third_party/boringssl/ssl/libssl.a $PCKGDIR/lib/$CFG/
-    done
-    
+function create_build_info_file {
     # add some infos about the build env that was used to build this package
     echo "# System used to build this package" > $PCKGDIR/about.txt
     echo "" >> $PCKGDIR/about.txt
@@ -176,6 +155,37 @@ function create_grpc_package {
     echo "# CPU" >> $PCKGDIR/about.txt
     echo "" >> $PCKGDIR/about.txt
     lscpu >> $PCKGDIR/about.txt
+}
+
+function create_grpc_package {
+    local PCKGDIR=grpc-$GRPCTAG-linux-$COMPILER-$ARCH
+    print_info "Preparing package structure '$PCKGDIR'"
+
+    mkdir -p $PCKGDIR/bin || exit_failure
+    cp release/grpc_*_plugin $PCKGDIR/bin/
+    cp release/third_party/protobuf/protoc $PCKGDIR/bin/
+
+    cp -R $GRPCDIR/include/ $PCKGDIR/include/ || exit_failure
+
+    # grpc
+    for CFG in debug release
+    do
+        mkdir -p $PCKGDIR/lib/$CFG
+        cp $CFG/*.a $PCKGDIR/lib/$CFG/
+        rm $PCKGDIR/lib/$CFG/libgrpc_cronet.a
+        rm $PCKGDIR/lib/$CFG/libgrpc_csharp_ext.a
+        rm $PCKGDIR/lib/$CFG/libgrpc_plugin_support.a
+        
+        cp $CFG/third_party/zlib/libz.a $PCKGDIR/lib/$CFG/
+        cp $CFG/third_party/boringssl/ssl/libssl.a $PCKGDIR/lib/$CFG/
+    done
+    
+    #protobuf
+    pushd $GRPCDIR/third_party/protobuf/src/
+    cp --parents `find -name \*.h` $PCKGDIR/include/ || exit_failure
+    popd
+     
+    create_build_info_file
 
     # compress package
     print_info "Compressing to $PCKGDIR.tar.gz..."
