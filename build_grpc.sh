@@ -132,6 +132,15 @@ function patch_grpc_makefile {
     fi
 }
 
+function patch_protobuf_install_path {
+    # fix "make install" issue with protobuf
+    local CMFILE=$GRPCDIR/third_party/protobuf/cmake/install.cmake
+    #local STR="install(DIRECTORY ${CMAKE_BINARY_DIR}\/${CMAKE_INSTALL_CMAKEDIR}"
+    local STR1="install(DIRECTORY \${CMAKE_BINARY_DIR}\/\${"
+    local STR2="install(DIRECTORY \${CMAKE_BINARY_DIR}\/third_party\/protobuf\/\${"
+    sed -i "s/$STR1/$STR2/g" $CMFILE
+}
+
 function create_build_info_file {
     # add some infos about the build env that was used to build this package
     echo "# System used to build this package" > $PCKGDIR/about.txt
@@ -213,7 +222,7 @@ get_grpc_source_code
 patch_zlib_makefile
 patch_grpc_makefile
 patch_for_arm_support
-
+patch_protobuf_install_path
 
 print_info "Build env setup complete"
 
@@ -247,13 +256,10 @@ cmake -DCMAKE_INSTALL_PREFIX=`pwd`/$PROTOBUF_INSTALLDIR -DCMAKE_BUILD_TYPE=Debug
 
 SECONDS=0
 make $MAKEJ || exit_failure
-
 TOTAL_SECONDS=$SECONDS
 readonly DEBUG_BUILD_TIME="$(($SECONDS / 60)) min $(($SECONDS % 60)) sec"
+make install || exit_failure # protobuf
 print_info "Debug build time: $DEBUG_BUILD_TIME"
-
-cd third_party/protobuf/
-make install || exit_failure
 popd
 
 # build in release
@@ -262,15 +268,12 @@ cmake -DCMAKE_INSTALL_PREFIX=`pwd`/$PROTOBUF_INSTALLDIR -DCMAKE_BUILD_TYPE=Relea
 
 SECONDS=0
 make $MAKEJ || exit_failure
-
 readonly RELEASE_BUILD_TIME="$(($SECONDS / 60)) min $(($SECONDS % 60)) sec"
 TOTAL_SECONDS=$((TOTAL_SECONDS + SECONDS))
+make install || exit_failure # protobuf
 readonly TOTAL_BUILD_TIME="$(($TOTAL_SECONDS / 60)) min $(($TOTAL_SECONDS % 60)) sec"
 print_info "Release build time: $RELEASE_BUILD_TIME"
 print_info "Total build time: $TOTAL_BUILD_TIME"
-
-cd third_party/protobuf/
-make install || exit_failure
 popd
 
 create_grpc_package
