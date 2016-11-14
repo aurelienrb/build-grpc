@@ -4,9 +4,9 @@
 
 ## Introduction
 
-[gRPC](http://www.grpc.io/) is a nice piece of software, but getting a working version of it can be a challenge. This project provides small scripts that manage all the little on various systems.
+[gRPC](http://www.grpc.io/) is a nice piece of software, but getting a working version of it can be a challenge! This project provides small scripts that manage all the little details on various systems.
 
-Once the build has completed, it will generate a compressed package: 
+Once the build has completed, the script will generate a compressed package containnig the gRPC & protobuf tools that generate code, plus the headers and static libs required to compile the generated code.
 
 - The x86_64 packages were built via [Travis CI](https://travis-ci.org/) and automatically uploaded to GitHub.
 - The ARM packages were built on the targeted device and manually uploaded.
@@ -33,9 +33,11 @@ The script will:
 - build grpc in debug and release
 - create a tar.gz package
  
-The posisble issues that are fixed by the script are:
+The possible issues that are fixed by the script are:
 - dependency BoringSSL (Google fork of OpenSSL) won't build on `armv6l` or `armv7l` such as Raspberry Pi or NVidia Tegra (issue [#8719](https://github.com/grpc/grpc/issues/8719))
-- third_party/zlib references system wide zlib when building examples (issue [#8739](https://github.com/grpc/grpc/issues/8739))  
+- third_party/zlib references system wide zlib when building examples (issue [#8739](https://github.com/grpc/grpc/issues/8739))
+- build will fail because of a link error on some systems (Ubuntu 12.04)
+- `make install` fails on protobuf when it is part of gRPC
 
 ### Requirements to run the script
 - must: bash
@@ -70,6 +72,8 @@ ARMv6 700 MHz (1 logical core):
 |  compiler |   total  |  debug   |  release
 |-----------|----------|----------|----------
 | gcc-4.9.2 | 4h:03min | 2h:22min | 3h:41min 
+
+---
 
 ## Lessons learned
 
