@@ -117,7 +117,7 @@ function patch_zlib_makefile {
     local LINE_NUMBER=`awk '/Example binaries/{ print NR; exit }' $CMFILE`
     if [[ "$LINE_NUMBER" != "" ]]; then
         print_info "Patching file '$CMFILE' to fix possible build issue"
-        sed --in-place -n "1,$((LINE_NUMBER-1)) p" $CMFILE
+        sed -i -n "1,$((LINE_NUMBER-1)) p" $CMFILE
     fi
 }
 
@@ -132,28 +132,16 @@ function patch_grpc_makefile {
     fi
 }
 
-function create_grpc_package {
-    local PCKGDIR=grpc-$GRPCTAG-linux-$COMPILER-$ARCH
-    print_info "Preparing package structure '$PCKGDIR'"
+function patch_protobuf_install_path {
+    # fix "make install" issue with protobuf
+    local CMFILE=$GRPCDIR/third_party/protobuf/cmake/install.cmake
+    #local STR="install(DIRECTORY ${CMAKE_BINARY_DIR}\/${CMAKE_INSTALL_CMAKEDIR}"
+    local STR1="install(DIRECTORY \${CMAKE_BINARY_DIR}\/\${"
+    local STR2="install(DIRECTORY \${CMAKE_BINARY_DIR}\/third_party\/protobuf\/\${"
+    sed -i "s/$STR1/$STR2/g" $CMFILE
+}
 
-    mkdir -p $PCKGDIR/bin || exit_failure
-    cp release/grpc_*_plugin $PCKGDIR/bin/
-    cp release/third_party/protobuf/protoc $PCKGDIR/bin/
-
-    cp -R $GRPCDIR/include/ $PCKGDIR/include/ || exit_failure
-
-    for CFG in debug release
-    do
-        mkdir -p $PCKGDIR/lib/$CFG
-        cp $CFG/*.a $PCKGDIR/lib/$CFG/
-        rm $PCKGDIR/lib/$CFG/libgrpc_cronet.a
-        rm $PCKGDIR/lib/$CFG/libgrpc_csharp_ext.a
-        rm $PCKGDIR/lib/$CFG/libgrpc_plugin_support.a
-        
-        cp $CFG/third_party/zlib/libz.a $PCKGDIR/lib/$CFG/
-        cp $CFG/third_party/boringssl/ssl/libssl.a $PCKGDIR/lib/$CFG/
-    done
-    
+function create_build_info_file {
     # add some infos about the build env that was used to build this package
     echo "# System used to build this package" > $PCKGDIR/about.txt
     echo "" >> $PCKGDIR/about.txt
@@ -165,6 +153,7 @@ function create_grpc_package {
     
     echo "Debug: $DEBUG_BUILD_TIME" >> $PCKGDIR/about.txt
     echo "Release: $RELEASE_BUILD_TIME" >> $PCKGDIR/about.txt
+    echo "Total: $TOTAL_BUILD_TIME" >> $PCKGDIR/about.txt
     echo "using $NPROC parallel job(s)" >> $PCKGDIR/about.txt
 
     echo "" >> $PCKGDIR/about.txt
@@ -176,12 +165,52 @@ function create_grpc_package {
     echo "# CPU" >> $PCKGDIR/about.txt
     echo "" >> $PCKGDIR/about.txt
     lscpu >> $PCKGDIR/about.txt
+}
+
+function create_grpc_package {
+    local PCKGDIR=grpc-$GRPCTAG-linux-$COMPILER-$ARCH
+    print_info "Preparing package structure '$PCKGDIR'"
+
+    mkdir -p $PCKGDIR/bin || exit_failure
+    cp release/grpc_*_plugin $PCKGDIR/bin/
+    cp release/third_party/protobuf/protoc $PCKGDIR/bin/
+
+    cp -R $GRPCDIR/include/ $PCKGDIR/include/ || exit_failure
+    # add protobud includes + compiler
+    mv release/$PROTOBUF_INSTALLDIR/include/* $PCKGDIR/include/ || exit_failure
+    mv release/$PROTOBUF_INSTALLDIR/bin/* $PCKGDIR/bin/ || exit_failure
+
+    for CFG in debug release
+    do
+        mkdir -p $PCKGDIR/lib/$CFG
+        cp $CFG/*.a $PCKGDIR/lib/$CFG/
+        rm $PCKGDIR/lib/$CFG/libgrpc_cronet.a
+        rm $PCKGDIR/lib/$CFG/libgrpc_csharp_ext.a
+        rm $PCKGDIR/lib/$CFG/libgrpc_plugin_support.a
+        
+        cp $CFG/third_party/zlib/libz.a $PCKGDIR/lib/$CFG/
+        cp $CFG/third_party/boringssl/ssl/libssl.a $PCKGDIR/lib/$CFG/
+
+	# add protobuf libs
+	cp $CFG/$PROTOBUF_INSTALLDIR/lib/*.a $PCKGDIR/lib/$CFG/
+    done
+
+    create_build_info_file
 
     # compress package
     print_info "Compressing to $PCKGDIR.tar.gz..."
     GZIP=-9 tar czf $PCKGDIR.tar.gz $PCKGDIR || exit_failure
     mv -f $PCKGDIR.tar.gz ..
     popd
+}
+
+function share_build_times {
+    local FILE=build-times.md
+    if [[ ! -f $FILE ]]; then
+        echo "|  compiler   |   total    |    debug    |   release" > $FILE
+        echo "|-------------|------------|-------------|-------------" >> $FILE
+    fi
+    echo "| $COMPILER | $TOTAL_BUILD_TIME | $DEBUG_BUILD_TIME | $RELEASE_BUILD_TIME" >> $FILE
 }
 
 print_info "Starting build type=$BUILD_TYPE"
@@ -193,6 +222,7 @@ get_grpc_source_code
 patch_zlib_makefile
 patch_grpc_makefile
 patch_for_arm_support
+patch_protobuf_install_path
 
 print_info "Build env setup complete"
 
@@ -211,6 +241,7 @@ if [[ "$NPROC" -gt "1" ]]; then
 fi
 
 readonly BUILDDIR=grpc-build
+readonly PROTOBUF_INSTALLDIR=protobuf-install
 # create new build dir
 if [[ -d $BUILDDIR ]]; then
     print_info "Cleaning previous build dir"
@@ -220,24 +251,33 @@ mkdir $BUILDDIR || exit_failure
 pushd $BUILDDIR
 
 # build in debug
-mkdir debug && cd debug
-cmake -DCMAKE_BUILD_TYPE=Debug $GRPCDIR || exit_failure
+mkdir debug && pushd debug
+cmake -DCMAKE_INSTALL_PREFIX=`pwd`/$PROTOBUF_INSTALLDIR -DCMAKE_BUILD_TYPE=Debug $GRPCDIR || exit_failure
+
 SECONDS=0
 make $MAKEJ || exit_failure
+TOTAL_SECONDS=$SECONDS
 readonly DEBUG_BUILD_TIME="$(($SECONDS / 60)) min $(($SECONDS % 60)) sec"
-print_info "Debug build completed in $DEBUG_BUILD_TIME"
-cd ..
+make install || exit_failure # protobuf
+print_info "Debug build time: $DEBUG_BUILD_TIME"
+popd
 
 # build in release
-mkdir release && cd release
-cmake -DCMAKE_BUILD_TYPE=Release $GRPCDIR || exit_failure
+mkdir release && pushd release
+cmake -DCMAKE_INSTALL_PREFIX=`pwd`/$PROTOBUF_INSTALLDIR -DCMAKE_BUILD_TYPE=Release $GRPCDIR || exit_failure
+
 SECONDS=0
 make $MAKEJ || exit_failure
 readonly RELEASE_BUILD_TIME="$(($SECONDS / 60)) min $(($SECONDS % 60)) sec"
-print_info "Release build completed in $RELEASE_BUILD_TIME"
-cd ..
+TOTAL_SECONDS=$((TOTAL_SECONDS + SECONDS))
+make install || exit_failure # protobuf
+readonly TOTAL_BUILD_TIME="$(($TOTAL_SECONDS / 60)) min $(($TOTAL_SECONDS % 60)) sec"
+print_info "Release build time: $RELEASE_BUILD_TIME"
+print_info "Total build time: $TOTAL_BUILD_TIME"
+popd
 
 create_grpc_package
+share_build_times
 
 print_info "Cleaning..."
 rm -rf $BUILDDIR
