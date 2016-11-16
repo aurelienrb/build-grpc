@@ -1,12 +1,12 @@
 $GRPCTAG="v1.0.1"
 $CMAKE="D:\cmake-3.5.2-win32-x86\bin\cmake.exe"
-#$MSBUILD = "C:\Windows\Microsoft.NET\Framework64\v3.5\MSBuild.exe"
+$MingwBinDir="C:\Qt\Tools\mingw530_32\bin"
 
 function exit_failure {
     Write-Error "Something failed!"
+    popd
+    exit
 }
-
-$MingwBinDir="C:\Qt\Tools\mingw530_32\bin"
 
 function create_package {
     $destDir="."
@@ -43,7 +43,12 @@ function patch_crypto_cpuintel_file {
 }
 
 function patch_source_file {
-    (Get-Content $file) -replace $oldValue, $newValue | Set-Content $file
+    Param(
+      [string]$file,
+      [string]$oldValue,
+      [string]$newValue
+    )
+    (Get-Content $file) -replace "$oldValue", "$newValue" | Set-Content $file
 }
 
 function patch_grpc_source_code {
@@ -56,9 +61,6 @@ function patch_grpc_source_code {
         Write-Host "gRPC source code already patched"
         return
     }
-
-    $file = "$srcDir\third_party\boringssl\tool\digest.cc"
-    patch_source_file $file "#define PATH_MAX MAX_PATH" ""
 
     $file = "$srcDir\third_party\boringssl\tool\digest.cc"
     patch_source_file $file "#define PATH_MAX MAX_PATH" ""
@@ -120,24 +122,39 @@ $env:Path = "$MingwBinDir;$env:Path"
 #undef X509_EXTENSIONS
 #endif
 
-mkdir $BUILDDIR
-pushd $BUILDDIR
-
 $COMMON_C_CXX="-Wno-unknown-pragmas -Wno-unused-result -Wno-attributes -Wno-unused-variable -D__WINCRYPT_H__ -D_WIN32_WINNT=0x0600"
 $CMAKE_C_FLAGS="$COMMON_C_CXX -Wno-implicit-function-declaration -Wno-error=sign-compare"
 $CMAKE_CXX_FLAGS=$COMMON_C_CXX
 
+mkdir $BUILDDIR
+pushd $BUILDDIR
+
 mkdir debug
-pushd debug
+cd debug
+
 # TODO: fix missing zlib
 &$CMAKE -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS="$CMAKE_C_FLAGS" -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS" ../../grpc
+#if (!$?) {
+
 &mingw32-make -j 4 GOROOT="$PSScriptRoot\go" GOPATH="$PSScriptRoot\go\src"
-popd
+if (!(Test-Path ".\libgrpc++_reflection.a")) {
+    exit_failure
+}
+cd ..
 
 mkdir release
-pushd release
+cd release
 &$CMAKE -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="$CMAKE_C_FLAGS" -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS" ../../grpc
+if (!$?) {
+#    exit_failure
+}
+
 &mingw32-make -j 4 GOROOT="$PSScriptRoot\go" GOPATH="$PSScriptRoot\go\src"
-popd
+if (!(Test-Path ".\libgrpc++_reflection.a")) {
+    exit_failure
+}
+cd ..
 
 popd
+
+Write-Host "Done!"
