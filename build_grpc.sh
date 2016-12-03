@@ -191,7 +191,6 @@ function create_grpc_package {
 
 	# add protobuf libs
 	cp $PROTOBUF_INSTALLDIR/lib/*.a $PCKGDIR/lib/
-    done
 
     create_build_info_file
 
@@ -243,8 +242,5 @@ make $MAKEJ || exit_failure
 make install || exit_failure # protobuf
 create_grpc_package
 popd
-
-print_info "Cleaning..."
-rm -rf $BUILDDIR
 
 print_info "Done!"
