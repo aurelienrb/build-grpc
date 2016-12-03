@@ -199,7 +199,6 @@ function create_grpc_package {
     print_info "Compressing to $PCKGDIR.tar.gz..."
     GZIP=-9 tar czf $PCKGDIR.tar.gz $PCKGDIR || exit_failure
     mv -f $PCKGDIR.tar.gz ..
-    popd
 }
 
 print_info "Starting build type=$BUILD_TYPE"
@@ -240,18 +239,10 @@ mkdir $BUILDDIR || exit_failure
 pushd $BUILDDIR
 # build in release
 cmake -DCMAKE_INSTALL_PREFIX=`pwd`/$PROTOBUF_INSTALLDIR -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14 $GRPCDIR || exit_failure
-
-SECONDS=0
 make $MAKEJ || exit_failure
-readonly RELEASE_BUILD_TIME="$(($SECONDS / 60)) min $(($SECONDS % 60)) sec"
-TOTAL_SECONDS=$((TOTAL_SECONDS + SECONDS))
 make install || exit_failure # protobuf
-readonly TOTAL_BUILD_TIME="$(($TOTAL_SECONDS / 60)) min $(($TOTAL_SECONDS % 60)) sec"
-print_info "Release build time: $RELEASE_BUILD_TIME"
-print_info "Total build time: $TOTAL_BUILD_TIME"
-popd
-
 create_grpc_package
+popd
 
 print_info "Cleaning..."
 rm -rf $BUILDDIR
