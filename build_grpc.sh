@@ -172,13 +172,13 @@ function create_grpc_package {
     print_info "Preparing package structure '$PCKGDIR'"
 
     mkdir -p $PCKGDIR/bin || exit_failure
-    cp release/grpc_*_plugin $PCKGDIR/bin/
-    cp release/third_party/protobuf/protoc $PCKGDIR/bin/
+    cp grpc_*_plugin $PCKGDIR/bin/
+    cp third_party/protobuf/protoc $PCKGDIR/bin/
 
     cp -R $GRPCDIR/include/ $PCKGDIR/include/ || exit_failure
     # add protobud includes + compiler
-    mv release/$PROTOBUF_INSTALLDIR/include/* $PCKGDIR/include/ || exit_failure
-    mv release/$PROTOBUF_INSTALLDIR/bin/* $PCKGDIR/bin/ || exit_failure
+    mv $PROTOBUF_INSTALLDIR/include/* $PCKGDIR/include/ || exit_failure
+    mv $PROTOBUF_INSTALLDIR/bin/* $PCKGDIR/bin/ || exit_failure
 
 	mkdir -p $PCKGDIR/lib
 	cp ./*.a $PCKGDIR/lib/
