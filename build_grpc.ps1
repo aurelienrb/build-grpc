@@ -10,9 +10,6 @@ function exit_failure {
 function get_grpc_source_code {
     if (!(Test-Path -Path grpc)) {
         &$GIT clone -b $GRPCTAG --depth 1 --recursive https://github.com/grpc/grpc.git
-        if (!$?) { exit_failure }
-        # need to apply some patches
-        Add-Content "grpc\CMakeLists.txt" "add_definitions(-D_WIN32_WINNT=0x0600)"
     }
 }
 
