@@ -180,19 +180,17 @@ function create_grpc_package {
     mv release/$PROTOBUF_INSTALLDIR/include/* $PCKGDIR/include/ || exit_failure
     mv release/$PROTOBUF_INSTALLDIR/bin/* $PCKGDIR/bin/ || exit_failure
 
-    for CFG in debug release
-    do
-        mkdir -p $PCKGDIR/lib/$CFG
-        cp $CFG/*.a $PCKGDIR/lib/$CFG/
-        rm $PCKGDIR/lib/$CFG/libgrpc_cronet.a
-        rm $PCKGDIR/lib/$CFG/libgrpc_csharp_ext.a
-        rm $PCKGDIR/lib/$CFG/libgrpc_plugin_support.a
-        
-        cp $CFG/third_party/zlib/libz.a $PCKGDIR/lib/$CFG/
-        cp $CFG/third_party/boringssl/ssl/libssl.a $PCKGDIR/lib/$CFG/
+	mkdir -p $PCKGDIR/lib
+	cp ./*.a $PCKGDIR/lib/
+	rm $PCKGDIR/lib/libgrpc_cronet.a
+	rm $PCKGDIR/lib/libgrpc_csharp_ext.a
+	rm $PCKGDIR/lib/libgrpc_plugin_support.a
+	
+	cp third_party/zlib/libz.a $PCKGDIR/lib/
+	cp third_party/boringssl/ssl/libssl.a $PCKGDIR/lib/
 
 	# add protobuf libs
-	cp $CFG/$PROTOBUF_INSTALLDIR/lib/*.a $PCKGDIR/lib/$CFG/
+	cp $PROTOBUF_INSTALLDIR/lib/*.a $PCKGDIR/lib/
     done
 
     create_build_info_file
@@ -202,15 +200,6 @@ function create_grpc_package {
     GZIP=-9 tar czf $PCKGDIR.tar.gz $PCKGDIR || exit_failure
     mv -f $PCKGDIR.tar.gz ..
     popd
-}
-
-function share_build_times {
-    local FILE=build-times.md
-    if [[ ! -f $FILE ]]; then
-        echo "|  compiler   |   total    |    debug    |   release" > $FILE
-        echo "|-------------|------------|-------------|-------------" >> $FILE
-    fi
-    echo "| $COMPILER | $TOTAL_BUILD_TIME | $DEBUG_BUILD_TIME | $RELEASE_BUILD_TIME" >> $FILE
 }
 
 print_info "Starting build type=$BUILD_TYPE"
@@ -249,22 +238,8 @@ if [[ -d $BUILDDIR ]]; then
 fi
 mkdir $BUILDDIR || exit_failure
 pushd $BUILDDIR
-
-# build in debug
-mkdir debug && pushd debug
-cmake -DCMAKE_INSTALL_PREFIX=`pwd`/$PROTOBUF_INSTALLDIR -DCMAKE_BUILD_TYPE=Debug $GRPCDIR || exit_failure
-
-SECONDS=0
-make $MAKEJ || exit_failure
-TOTAL_SECONDS=$SECONDS
-readonly DEBUG_BUILD_TIME="$(($SECONDS / 60)) min $(($SECONDS % 60)) sec"
-make install || exit_failure # protobuf
-print_info "Debug build time: $DEBUG_BUILD_TIME"
-popd
-
 # build in release
-mkdir release && pushd release
-cmake -DCMAKE_INSTALL_PREFIX=`pwd`/$PROTOBUF_INSTALLDIR -DCMAKE_BUILD_TYPE=Release $GRPCDIR || exit_failure
+cmake -DCMAKE_INSTALL_PREFIX=`pwd`/$PROTOBUF_INSTALLDIR -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14 $GRPCDIR || exit_failure
 
 SECONDS=0
 make $MAKEJ || exit_failure
@@ -277,7 +252,6 @@ print_info "Total build time: $TOTAL_BUILD_TIME"
 popd
 
 create_grpc_package
-share_build_times
 
 print_info "Cleaning..."
 rm -rf $BUILDDIR
